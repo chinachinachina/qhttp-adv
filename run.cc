@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 
     /* 将seq解析到map中 */
     string key;
-    int value;
+    string value;
     /* 临时长度 */
     int temp_len;
     string seq_str = seq;
@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
         if (seq[i] == '\n')
         {
             temp_len = i - start;
-            value = atoi(seq_str.substr(start, temp_len).c_str());
+            value = seq_str.substr(start, temp_len).c_str();
             start = i + 1;
             /* 向map插入一个键值对 */
             Server::data_map.insert(make_pair(key, value));

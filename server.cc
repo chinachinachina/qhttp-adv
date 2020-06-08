@@ -29,7 +29,7 @@
 
 using namespace std;
 
-map<string, int> Server::data_map;
+map<string, string> Server::data_map;
 vector<string> Server::query_list;
 vector<string> Server::post_list;
 
@@ -211,7 +211,6 @@ void Server::process_request_line(single_connection *conn)
         int key_len;
         /* 用户查询键临时变量 */
         char temp_key[256];
-        memset(temp_key, '\0', sizeof(temp_key));
         /* 临时变量str类型 */
         string temp_key_str;
         /* 设置指针保存uri初始位置指针 */
@@ -248,13 +247,14 @@ void Server::process_request_line(single_connection *conn)
                 /* 定位“&”的位置 */
                 find_and = strpbrk(key_search_begin, "&");
                 /* 若该次查询到的“&”为空或其在ptr指针之后，则将其设为ptr */
-                if ((find_and == NULL) || (ptr - find_and == 0))
+                if ((find_and == NULL) || (ptr - find_and <= 0))
                 {
                     find_and = ptr;
                 }
                 /* 键长 */
                 key_len = find_and - key_search_begin - 1;
                 /* 拷贝键到temp_key */
+                memset(temp_key, '\0', sizeof(temp_key));
                 strncpy(temp_key, key_search_begin + 1, key_len);
                 temp_key_str = temp_key;
                 /* 向query_list添加键 */
@@ -418,7 +418,6 @@ void Server::process_body(single_connection *conn)
             string key_str;
             char key[32];
             /* value */
-            int value_int;
             char value[32];
             /* 键或值的长度 */
             int len;
@@ -461,13 +460,11 @@ void Server::process_body(single_connection *conn)
                 len = find_and - find_equ - 1;
                 /* 拷贝value值到value字符数组 */
                 strncpy(value, find_equ + 1, len);
-                /* value由字符数组转换为整形 */
-                value_int = atoi(value);
 
-                printf("[INFO] Insert into the map: key = %s, value = %d \n", key, value_int);
+                printf("[INFO] Insert into the map: key = %s, value = %s \n", key, value);
 
                 /* 向map中插入键值对 */
-                data_map.insert(make_pair(key_str, value_int));
+                data_map.insert(make_pair(key_str, value));
             }
         }
     }
@@ -500,8 +497,8 @@ void Server::send_response(single_connection *conn)
         memset(response_res, '\0', sizeof(response_res));
         /* 整合状态行 */
         sprintf(response_res, "%sHTTP/1.1 200 OK\r\n", response_res);
-        map<string, int>::iterator it;
-         /* 响应主体 */
+        map<string, string>::iterator it;
+        /* 响应主体 */
         char response_body[1024];
         memset(response_body, '\0', sizeof(response_body));
         /* 目标文档的MIME类型为text/html */
@@ -510,7 +507,7 @@ void Server::send_response(single_connection *conn)
         for (int i = 0; i < post_list.size(); i++)
         {
             it = data_map.find(post_list[i]);
-            sprintf(response_body, "%skey = %s , value = %d <br>", response_body, it->first.c_str(), it->second);
+            sprintf(response_body, "%skey = %s , value = %s <br>", response_body, it->first.c_str(), it->second.c_str());
         }
         sprintf(response_body, "%s</html></body>", response_body);
         /* 响应主体长度 */
@@ -533,7 +530,7 @@ void Server::send_response(single_connection *conn)
         memset(seq, '\0', FILE_SEQ_LEN);
         for (it = data_map.begin(); it != data_map.end(); it++)
         {
-            sprintf(seq, "%s%s %d\n", seq, it->first.c_str(), it->second);
+            sprintf(seq, "%s%s %s\n", seq, it->first.c_str(), it->second.c_str());
         }
 
         int seq_len = strlen(seq);
@@ -552,7 +549,7 @@ void Server::send_response(single_connection *conn)
         memset(response_res, '\0', sizeof(response_res));
         /* 整合状态行 */
         sprintf(response_res, "%sHTTP/1.1 200 OK\r\n", response_res);
-        map<string, int>::iterator it;
+        map<string, string>::iterator it;
         /* 响应主体 */
         char response_body[1024];
         memset(response_body, '\0', sizeof(response_body));
@@ -565,7 +562,7 @@ void Server::send_response(single_connection *conn)
             // 若该key存在
             if (it != data_map.end())
             {
-                sprintf(response_body, "%skey = %s , value = %d <br>", response_body, it->first.c_str(), it->second);
+                sprintf(response_body, "%skey = %s , value = %s <br>", response_body, it->first.c_str(), it->second.c_str());
             }
             // 若key不存在
             else
