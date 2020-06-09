@@ -67,6 +67,7 @@ public:
     static vector<string> query_list;
     /* 用户写入键值对中键数组（请求方法为POST） */
     static vector<string> post_list;
+    
 
     /* 设置文件描述符fd为非阻塞 */
     static int setnonblocking(int fd);

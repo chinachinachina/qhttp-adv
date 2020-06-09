@@ -26,12 +26,14 @@
 #include <netinet/tcp.h>
 #include "server.h"
 #include "epoll_event.h"
+#include "redis_op.h"
 
 using namespace std;
 
 map<string, string> Server::data_map;
 vector<string> Server::query_list;
 vector<string> Server::post_list;
+redisContext* Database::rc;
 
 /* 设置文件描述符fd为非阻塞 */
 int Server::setnonblocking(int fd)
@@ -555,21 +557,30 @@ void Server::send_response(single_connection *conn)
         memset(response_body, '\0', sizeof(response_body));
         /* 目标文档的MIME类型为text/html */
         sprintf(response_body, "%s<html><body>", response_body);
+        /* 查询结果指针 */
+        char *ans;
+        /* 查询命令 */
+        char command[128];
         for (int i = 0; i < query_list.size(); i++)
         {
-            // 在map查询用户输入的key
-            it = data_map.find(query_list[i]);
-            // 若该key存在
-            if (it != data_map.end())
+            /* 查询命令 */
+            sprintf(command, "get %s", query_list[i].c_str());
+            /* 获取查询结果 */
+            ans = Database::redis_get(Database::rc, command);
+
+            /* 若该key存在 */
+            if (NULL != ans)
             {
-                sprintf(response_body, "%skey = %s , value = %s <br>", response_body, it->first.c_str(), it->second.c_str());
+                sprintf(response_body, "%skey = %s , value = %s <br>", response_body, query_list[i].c_str(), ans);
             }
-            // 若key不存在
+            /* 若key不存在 */
             else
             {
                 sprintf(response_body, "%sthe key %s is not existed <br>", response_body, query_list[i].c_str());
             }
         }
+        /* 释放内存 */
+        free(ans);
         sprintf(response_body, "%s</html></body>", response_body);
         /* 响应主体长度 */
         int response_len = strlen(response_body);

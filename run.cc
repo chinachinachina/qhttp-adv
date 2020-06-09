@@ -16,6 +16,7 @@
 
 #include "server.h"
 #include "epoll_event.h"
+#include "redis_op.h"
 
 using namespace std;
 
@@ -25,7 +26,7 @@ int main(int argc, char *argv[])
     if (argc <= 2)
     {   
         printf("usage: %s ip_address port_number \n", basename(argv[0]));
-        return 1;
+        return -1;
     }
 
     /* 重定向输出到文件 */
@@ -122,6 +123,13 @@ int main(int argc, char *argv[])
     }
 
     // printf("------ READ FROM THE FILE END ------ \n");
+
+    /* 建立Redis连接 */
+    if(Database::redis_conn(Database::rc)) {
+        printf("[INFO] Connect to redis-server success \n");
+    } else {
+        printf("[ERROR] Connect to redis-server fail \n");
+    }
 
     /* 进入事件循环函数，等待事件到达 */
     Epoll_Event_Op::epoll_process_events();
