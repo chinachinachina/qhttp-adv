@@ -19,9 +19,10 @@ public:
 
     /* 建立Redis连接 */
     static bool redis_conn(redisContext *&rc);
-
     /* 从Redis读取键值对 */
     static char *redis_get(redisContext *rc, const char *format);
+    /* 向Redis写入键值对 */
+    static bool redis_set(redisContext *rc, const char *format);
 };
 
 #endif

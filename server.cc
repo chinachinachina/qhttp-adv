@@ -30,10 +30,9 @@
 
 using namespace std;
 
-map<string, string> Server::data_map;
 vector<string> Server::query_list;
 vector<string> Server::post_list;
-redisContext* Database::rc;
+redisContext *Database::rc;
 
 /* 设置文件描述符fd为非阻塞 */
 int Server::setnonblocking(int fd)
@@ -463,10 +462,21 @@ void Server::process_body(single_connection *conn)
                 /* 拷贝value值到value字符数组 */
                 strncpy(value, find_equ + 1, len);
 
-                printf("[INFO] Insert into the map: key = %s, value = %s \n", key, value);
+                printf("[INFO] Insert into redis: key = %s, value = %s \n", key, value);
 
-                /* 向map中插入键值对 */
-                data_map.insert(make_pair(key_str, value));
+
+                /* 整合命令 */
+                char command[128];
+                sprintf(command, "set %s %s", key, value);
+                /* 向Redis插入键值对 */
+                if(Database::redis_set(Database::rc, command))
+                {
+                    printf("[INFO] Insert %s-%s success \n", key, value);
+                }
+                else
+                {
+                    printf("[INFO] Insert %s-%s fail \n", key, value);
+                }
             }
         }
     }
@@ -499,18 +509,27 @@ void Server::send_response(single_connection *conn)
         memset(response_res, '\0', sizeof(response_res));
         /* 整合状态行 */
         sprintf(response_res, "%sHTTP/1.1 200 OK\r\n", response_res);
-        map<string, string>::iterator it;
         /* 响应主体 */
         char response_body[1024];
         memset(response_body, '\0', sizeof(response_body));
         /* 目标文档的MIME类型为text/html */
         sprintf(response_body, "%s<html><body>The key-value you instered <br>", response_body);
+        /* 查询结果指针 */
+        char *ans;
+        /* 查询命令 */
+        char command[128];
         /* 根据post_list的key，查询对应的value */
         for (int i = 0; i < post_list.size(); i++)
         {
-            it = data_map.find(post_list[i]);
-            sprintf(response_body, "%skey = %s , value = %s <br>", response_body, it->first.c_str(), it->second.c_str());
+            /* 查询命令 */
+            sprintf(command, "get %s", post_list[i].c_str());
+            /* 获取查询结果 */
+            ans = Database::redis_get(Database::rc, command);
+            /* 整合响应体 */
+            sprintf(response_body, "%skey = %s , value = %s <br>", response_body, query_list[i].c_str(), ans);
+            free(ans);
         }
+
         sprintf(response_body, "%s</html></body>", response_body);
         /* 响应主体长度 */
         int response_len = strlen(response_body);
@@ -525,23 +544,6 @@ void Server::send_response(single_connection *conn)
 
         /* 向连接fd发送HTTP应答 */
         send(conn->fd, response_res, sizeof(response_res), 0);
-
-        /* 将map中的键值对写入文件map.txt，应放在POST方法的响应体发送模块后 */
-        printf("------ WRITE INTO THE FILE START ------ \n");
-        char seq[FILE_SEQ_LEN];
-        memset(seq, '\0', FILE_SEQ_LEN);
-        for (it = data_map.begin(); it != data_map.end(); it++)
-        {
-            sprintf(seq, "%s%s %s\n", seq, it->first.c_str(), it->second.c_str());
-        }
-
-        int seq_len = strlen(seq);
-        ofstream ofs;
-        ofs.open("map.txt");
-        ofs.write(seq, seq_len);
-        ofs.close();
-
-        printf("------ WRITE INTO THE FILE END ------ \n");
     }
     /* 若请求方法为GET，则进行键值对整合向客户端发送 */
     else
@@ -578,9 +580,9 @@ void Server::send_response(single_connection *conn)
             {
                 sprintf(response_body, "%sthe key %s is not existed <br>", response_body, query_list[i].c_str());
             }
+            /* 释放内存 */
+            free(ans);
         }
-        /* 释放内存 */
-        free(ans);
         sprintf(response_body, "%s</html></body>", response_body);
         /* 响应主体长度 */
         int response_len = strlen(response_body);

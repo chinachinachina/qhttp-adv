@@ -61,8 +61,6 @@ struct single_connection
 class Server
 {
 public:
-    /* 服务器保存的键值对 */
-    static map<string, string> data_map;
     /* 用户查询键的数组（请求方法为GET） */
     static vector<string> query_list;
     /* 用户写入键值对中键数组（请求方法为POST） */

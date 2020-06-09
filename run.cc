@@ -81,49 +81,6 @@ int main(int argc, char *argv[])
     /* 设置该监听socket非阻塞 */
     Server::setnonblocking(listenfd);
 
-    /* 从文件读取map数据 */
-    char seq[FILE_SEQ_LEN];
-    memset(seq, '\0', FILE_SEQ_LEN);
-    /* 从存储文件读取数据 */
-    ifstream ifs;
-    int seq_len;
-    ifs.open("map.txt");
-    ifs.seekg(0, ios::end);
-    /* 文件内容长度 */
-    seq_len = ifs.tellg();
-    /* 回到文件起始位置，开始读取数据 */
-    ifs.seekg(0, ios::beg);
-    ifs.read(seq, seq_len);
-
-    ifs.close();
-
-    /* 将seq解析到map中 */
-    string key;
-    string value;
-    /* 临时长度 */
-    int temp_len;
-    string seq_str = seq;
-    int start = 0;
-    for (int i = 0; i < seq_len; i++)
-    {
-        if (seq[i] == ' ')
-        {
-            temp_len = i - start;
-            key = seq_str.substr(start, temp_len);
-            start = i + 1;
-        }
-        if (seq[i] == '\n')
-        {
-            temp_len = i - start;
-            value = seq_str.substr(start, temp_len).c_str();
-            start = i + 1;
-            /* 向map插入一个键值对 */
-            Server::data_map.insert(make_pair(key, value));
-        }
-    }
-
-    // printf("------ READ FROM THE FILE END ------ \n");
-
     /* 建立Redis连接 */
     if(Database::redis_conn(Database::rc)) {
         printf("[INFO] Connect to redis-server success \n");

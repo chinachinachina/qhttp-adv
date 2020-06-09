@@ -29,7 +29,7 @@ char *Database::redis_get(redisContext *rc, const char *command)
 {
     redisReply *rr = (redisReply *)redisCommand(rc, command);
     /* 未查询到结果或查询出错 */
-    if (rr->type != REDIS_REPLY_STRING)
+    if (rr == NULL || rr->type != REDIS_REPLY_STRING)
     {
         printf("[INFO] Fail to execute command [%s] \n", command);
         /* 释放redisReply的内存 */
@@ -42,4 +42,21 @@ char *Database::redis_get(redisContext *rc, const char *command)
     /* 释放redisReply的内存 */
     freeReplyObject(rr);
     return res;
+}
+
+/* 向Redis写入键值对 */
+bool Database::redis_set(redisContext *rc, const char *command)
+{
+    redisReply *rr = (redisReply *)redisCommand(rc, command);
+    /* 未查询到结果或查询出错 */
+    if (rr == NULL || rr->type != REDIS_REPLY_STATUS || strcasecmp(rr->str, "OK") != 0)
+    {
+        printf("[INFO] Fail to execute command [%s] \n", command);
+        /* 释放redisReply的内存 */
+        freeReplyObject(rr);
+        return false;
+    }
+    /* 释放redisReply的内存 */
+    freeReplyObject(rr);
+    return true;
 }
