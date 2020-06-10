@@ -10,5 +10,9 @@ set(CMAKE_CXX_FLAGS "-O0 -ggdb")
 # 添加需要连接的库文件目录
 link_libraries("/usr/local/lib/libhiredis.so.0.15")
 
+# 添加libcoku
+set(LIBCO_DIR lib/libco)
+include_directories(${LIBCO_DIR})
+
 # 指定生成目标
 add_executable(run run.cc server.cc epoll_event.cc redis_op.cc)
