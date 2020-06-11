@@ -83,9 +83,9 @@ int main(int argc, char *argv[])
 
     /* 建立Redis连接 */
     if(Database::redis_conn(Database::rc)) {
-        printf("[INFO] Connect to redis-server success \n");
+        // printf("[INFO] Connect to redis-server success \n");
     } else {
-        printf("[ERROR] Connect to redis-server fail \n");
+        // printf("[ERROR] Connect to redis-server fail \n");
     }
 
     /* 进入事件循环函数，等待事件到达 */
