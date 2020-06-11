@@ -58,7 +58,7 @@ int Epoll_Event_Op::epoll_process_events()
     {
         /* epoll_wait等待文件描述符组上的事件，，最后一个参数timeout设置为-1为阻塞，直到某个事件发生 */
         /* 优化：第4个参数由-1更为10， 即由阻塞设置成非阻塞（等待10ms）*/
-        int number = epoll_wait(ep, event_list, MAX_EVENT_NUMBER - 1, 10);
+        int number = epoll_wait(ep, event_list, MAX_EVENT_NUMBER - 1, 1);
 
         /* 输出就绪事件数以及当前进程pid */
         // printf("[Info] Ready fd quantity: %d \n", number);

@@ -12,11 +12,11 @@ bool Database::redis_conn(redisContext *&rc)
     {
         if (rc)
         {
-            printf("[ERROR] %s \n", rc->errstr);
+            // printf("[ERROR] %s \n", rc->errstr);
         }
         else
         {
-            printf("[ERROR] Can't cllocate redis context \n");
+            // printf("[ERROR] Can't cllocate redis context \n");
         }
 
         return false;
@@ -31,7 +31,7 @@ char *Database::redis_get(redisContext *rc, const char *command)
     /* 未查询到结果或查询出错 */
     if (rr == NULL || rr->type != REDIS_REPLY_STRING)
     {
-        printf("[INFO] Fail to execute command [%s] \n", command);
+        // printf("[INFO] Fail to execute command [%s] \n", command);
         /* 释放redisReply的内存 */
         freeReplyObject(rr);
         return NULL;
@@ -51,7 +51,7 @@ bool Database::redis_set(redisContext *rc, const char *command)
     /* 未查询到结果或查询出错 */
     if (rr == NULL || rr->type != REDIS_REPLY_STATUS || strcasecmp(rr->str, "OK") != 0)
     {
-        printf("[INFO] Fail to execute command [%s] \n", command);
+        // printf("[INFO] Fail to execute command [%s] \n", command);
         /* 释放redisReply的内存 */
         freeReplyObject(rr);
         return false;

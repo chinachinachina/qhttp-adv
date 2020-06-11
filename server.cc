@@ -27,6 +27,7 @@
 #include "server.h"
 #include "epoll_event.h"
 #include "redis_op.h"
+#include "co_routine.h"
 
 using namespace std;
 
@@ -46,7 +47,7 @@ int Server::setnonblocking(int fd)
 /* 为single_connection类型结构体分配空间及初始化 */
 void Server::initConnection(single_connection *&conn)
 {
-    printf("------ INIT CONNECTION ------ \n");
+    // printf("------ INIT CONNECTION ------ \n");
 
     /* conn指针分配空间，因此参数为引用类型 */
     conn = (single_connection *)malloc(sizeof(single_connection));
@@ -54,7 +55,7 @@ void Server::initConnection(single_connection *&conn)
     conn->querybuf = (char *)malloc(QUERY_INIT_LEN);
     if (!conn->querybuf)
     {
-        printf("[ERROR] Web_connection_t struct space mallocation failed \n");
+        // printf("[ERROR] Web_connection_t struct space mallocation failed \n");
         return;
     }
     /* 为回调函数结构体分配空间 */
@@ -90,7 +91,7 @@ void Server::initConnection(single_connection *&conn)
 /* 负责监听的连接的读事件回调函数 */
 void Server::accept_conn(single_connection *conn)
 {
-    printf("------ ACCEPT CONNECTION ------ \n");
+    // printf("------ ACCEPT CONNECTION ------ \n");
 
     /* 创建客户端socket地址 */
     struct sockaddr *client_address;
@@ -102,7 +103,7 @@ void Server::accept_conn(single_connection *conn)
     {
         if (connfd < 0)
         {
-            printf("[WARN] Accept no connection \n");
+            // printf("[WARN] Accept no connection \n");
             return;
         }
 
@@ -115,7 +116,7 @@ void Server::accept_conn(single_connection *conn)
         initConnection(new_conn);
         if (new_conn == NULL)
         {
-            printf("[ERROR] Failed to create new connection \n");
+            // printf("[ERROR] Failed to create new connection \n");
             return;
         }
         /* 将connfd赋值给new_conn->fd，由该new_conn负责进行与指定客户端的通信 */
@@ -130,13 +131,13 @@ void Server::accept_conn(single_connection *conn)
         setnonblocking(connfd);
     }
 
-    printf("------ ACCEPT CONNECTION END------ \n");
+    // printf("------ ACCEPT CONNECTION END------ \n");
 }
 
 /* 负责与客户端通信的连接的渎事件的回调函数 */
 void Server::read_request(single_connection *conn)
 {
-    printf("------ READ REQUEST FROM CLIENT BEGIN ------ \n");
+    // printf("------ READ REQUEST FROM CLIENT BEGIN ------ \n");
 
     int len, fd = conn->fd;
     conn->data_len = 0;
@@ -152,7 +153,7 @@ void Server::read_request(single_connection *conn)
             /* 对于非阻塞IO，以下条件成立表示数据已经完全读取完毕，此后epoll就能再次触发sockfd上的EPOLLIN事件，以驱动下一次操作 */
             if ((errno == EAGAIN) || (errno == EWOULDBLOCK))
             {
-                printf("[INFO] Read client request data completed \n");
+                // printf("[INFO] Read client request data completed \n");
                 break;
             }
         }
@@ -166,7 +167,7 @@ void Server::read_request(single_connection *conn)
         /* 通信对方已经关闭连接 */
         else if (len == 0)
         {
-            printf("[WARN] Connection is closed by client \n");
+            // printf("[WARN] Connection is closed by client \n");
             /* 删除连接中描述符上所有的事件 */
             Epoll_Event_Op::epoll_del_event(conn);
             /* 关闭连接，释放其结构体空间 */
@@ -175,9 +176,9 @@ void Server::read_request(single_connection *conn)
         }
     }
 
-    printf("[INFO] Data from client \n");
-    printf("%s \n", conn->querybuf);
-    printf("------ READ REQUEST FROM CLIENT END ------ \n");
+    // printf("[INFO] Data from client \n");
+    // printf("%s \n", conn->querybuf);
+    // printf("------ READ REQUEST FROM CLIENT END ------ \n");
 
     /* 解析请求行 */
     process_request_line(conn);
@@ -186,7 +187,7 @@ void Server::read_request(single_connection *conn)
 /* 解析请求行 */
 void Server::process_request_line(single_connection *conn)
 {
-    printf("------ REQUEST LINE PARSING START ------ \n");
+    // printf("------ REQUEST LINE PARSING START ------ \n");
     /* 连接状态为处理请求行 */
     conn->state = QUERY_LINE;
 
@@ -201,7 +202,7 @@ void Server::process_request_line(single_connection *conn)
     int len = ptr - conn->querybuf - conn->query_start_index;
     /* 将请求方法复制到连接结构体中的method元素中 */
     strncpy(conn->method, conn->querybuf + conn->query_start_index, len);
-    printf("[Info] Request method: %s \n", conn->method);
+    // printf("[Info] Request method: %s \n", conn->method);
     /* 重新定位指针偏移量 */
     conn->query_start_index += (len + 1);
 
@@ -226,7 +227,7 @@ void Server::process_request_line(single_connection *conn)
         ptr = strpbrk(conn->querybuf + conn->query_start_index, " ");
         if (!ptr)
         {
-            printf("[ERROR] Request uri parsing failed\n");
+            // printf("[ERROR] Request uri parsing failed\n");
             return;
         }
         /* 目标资源uri长度 */
@@ -240,7 +241,7 @@ void Server::process_request_line(single_connection *conn)
             if ((key_search_begin == NULL) || (ptr - key_search_begin <= 0))
             {
                 /* 输出获得用户查询串中键的数量 */
-                printf("[INFO] Get %d key(s) from client \n", query_list.size());
+                // printf("[INFO] Get %d key(s) from client \n", query_list.size());
                 break;
             }
             else
@@ -265,7 +266,7 @@ void Server::process_request_line(single_connection *conn)
         /* 输出用户查询串中键的具体信息 */
         for (int i = 0; i < query_list.size(); i++)
         {
-            printf("[INFO] The key %d is %s \n", i + 1, query_list[i].c_str());
+            // printf("[INFO] The key %d is %s \n", i + 1, query_list[i].c_str());
         }
         conn->query_start_index += (len + 1);
     }
@@ -275,14 +276,14 @@ void Server::process_request_line(single_connection *conn)
         ptr = strpbrk(conn->querybuf + conn->query_start_index, " ");
         if (!ptr)
         {
-            printf("[ERROR] Request uri parsing failed \n");
+            // printf("[ERROR] Request uri parsing failed \n");
             return;
         }
         /* 目标资源uri长度 */
         len = ptr - conn->querybuf - conn->query_start_index;
         strncpy(conn->uri, conn->querybuf + conn->query_start_index, len);
 
-        printf("[INFO] Request uri: %s \n", conn->uri);
+        // printf("[INFO] Request uri: %s \n", conn->uri);
 
         conn->query_start_index += (len + 1);
     }
@@ -291,7 +292,7 @@ void Server::process_request_line(single_connection *conn)
     ptr = strpbrk(conn->querybuf, "\n");
     if (!ptr)
     {
-        printf("[ERROR] Request version parsing failed \n");
+        // printf("[ERROR] Request version parsing failed \n");
         return;
     }
     /* 客户端wget程序使用的HTTP版本号 */
@@ -299,11 +300,11 @@ void Server::process_request_line(single_connection *conn)
     /* 最后一个参数需要在原长度-1，即除去\r */
     strncpy(conn->version, conn->querybuf + conn->query_start_index, len - 1);
 
-    printf("[INFO] Request version: %s \n", conn->version);
+    // printf("[INFO] Request version: %s \n", conn->version);
 
     conn->query_start_index += (len + 1);
 
-    printf("------ REQUEST LINE PARSING END ------ \n");
+    // printf("------ REQUEST LINE PARSING END ------ \n");
 
     /* 解析请求头部 */
     process_head(conn);
@@ -312,7 +313,7 @@ void Server::process_request_line(single_connection *conn)
 /* 解析请求头部 */
 void Server::process_head(single_connection *conn)
 {
-    printf("------ REQUEST HEAD PARSING START ------ \n");
+    // printf("------ REQUEST HEAD PARSING START ------ \n");
 
     /* 更新连接状态为QUERY_HEAD */
     conn->state = QUERY_HEAD;
@@ -327,7 +328,7 @@ void Server::process_head(single_connection *conn)
         if (len == 1)
         {
             /* 解析完毕 */
-            printf("------ REQUEST HEAD PARSING END ------ \n");
+            // printf("------ REQUEST HEAD PARSING END ------ \n");
             conn->query_start_index += (len + 1);
             break;
         }
@@ -337,47 +338,47 @@ void Server::process_head(single_connection *conn)
             if (strncasecmp(conn->querybuf + conn->query_start_index, "Host:", 5) == 0)
             {
                 strncpy(conn->host, conn->querybuf + conn->query_start_index + 6, len - 7);
-                printf("[INFO] Request host: %s \n", conn->host);
+                // printf("[INFO] Request host: %s \n", conn->host);
             }
             else if (strncasecmp(conn->querybuf + conn->query_start_index, "Proxy-Connection:", 17) == 0)
             {
                 strncpy(conn->proxy_connection, conn->querybuf + conn->query_start_index + 18, len - 19);
-                printf("[INFO] Request proxy_connection: %s \n", conn->proxy_connection);
+                // printf("[INFO] Request proxy_connection: %s \n", conn->proxy_connection);
             }
             else if (strncasecmp(conn->querybuf + conn->query_start_index, "Upgrade-Insecure-Requests:", 26) == 0)
             {
                 strncpy(conn->upgrade_insecure_requests, conn->querybuf + conn->query_start_index + 27, len - 28);
-                printf("[INFO] Request upgrade_insecure_requests: %s \n", conn->upgrade_insecure_requests);
+                // printf("[INFO] Request upgrade_insecure_requests: %s \n", conn->upgrade_insecure_requests);
             }
             else if (strncasecmp(conn->querybuf + conn->query_start_index, "User-Agent:", 11) == 0)
             {
                 strncpy(conn->user_agent, conn->querybuf + conn->query_start_index + 12, len - 13);
-                printf("[INFO] Request user_agent: %s \n", conn->user_agent);
+                // printf("[INFO] Request user_agent: %s \n", conn->user_agent);
             }
             else if (strncasecmp(conn->querybuf + conn->query_start_index, "Accept:", 7) == 0)
             {
                 strncpy(conn->accept, conn->querybuf + conn->query_start_index + 8, len - 9);
-                printf("[INFO] Request accept: %s \n", conn->accept);
+                // printf("[INFO] Request accept: %s \n", conn->accept);
             }
             else if (strncasecmp(conn->querybuf + conn->query_start_index, "Accept-Encoding:", 16) == 0)
             {
                 strncpy(conn->accept_encoding, conn->querybuf + conn->query_start_index + 17, len - 18);
-                printf("[INFO] Request accept_encoding: %s \n", conn->accept_encoding);
+                // printf("[INFO] Request accept_encoding: %s \n", conn->accept_encoding);
             }
             else if (strncasecmp(conn->querybuf + conn->query_start_index, "Accept-Language:", 16) == 0)
             {
                 strncpy(conn->accept_language, conn->querybuf + conn->query_start_index + 17, len - 18);
-                printf("[INFO] Request accept_language: %s \n", conn->accept_language);
+                // printf("[INFO] Request accept_language: %s \n", conn->accept_language);
             }
             else if (strncasecmp(conn->querybuf + conn->query_start_index, "connection:", 11) == 0)
             {
                 strncpy(conn->connection, conn->querybuf + conn->query_start_index + 12, len - 13);
-                printf("[INFO] Request connection: %s \n", conn->connection);
+                // printf("[INFO] Request connection: %s \n", conn->connection);
             }
             else if (strncasecmp(conn->querybuf + conn->query_start_index, "Content-Length:", 15) == 0)
             {
                 strncpy(conn->content_length, conn->querybuf + conn->query_start_index + 16, len - 17);
-                printf("[INFO] Request content-length: %s \n", conn->content_length);
+                // printf("[INFO] Request content-length: %s \n", conn->content_length);
             }
             else
             {
@@ -393,7 +394,7 @@ void Server::process_head(single_connection *conn)
 /* 解析可选消息体 */
 void Server::process_body(single_connection *conn)
 {
-    printf("------ REQUEST BODY PARSING START ------ \n");
+    // printf("------ REQUEST BODY PARSING START ------ \n");
 
     /* 更新连接状态为QUERY_BODY */
     conn->state = QUERY_BODY;
@@ -401,14 +402,14 @@ void Server::process_body(single_connection *conn)
     /* 判断可选消息体是否为空 */
     if (conn->query_start_index == conn->query_end_index)
     {
-        printf("[WARN] HTTP request content is empty \n");
+        // printf("[WARN] HTTP request content is empty \n");
     }
     else
     {
         /* 请求方法若为GET则忽略请求体 */
         if (strcmp(conn->method, "GET") == 0)
         {
-            printf("[WARN] Skip parsing HTTP request content \n");
+            // printf("[WARN] Skip parsing HTTP request content \n");
         }
         /* 请求方法若为POST则需要解析请求体 */
         else
@@ -462,20 +463,23 @@ void Server::process_body(single_connection *conn)
                 /* 拷贝value值到value字符数组 */
                 strncpy(value, find_equ + 1, len);
 
-                printf("[INFO] Insert into redis: key = %s, value = %s \n", key, value);
+                // printf("[INFO] Insert into redis: key = %s, value = %s \n", key, value);
 
 
                 /* 整合命令 */
                 char command[128];
                 sprintf(command, "set %s %s", key, value);
+
+                
+
                 /* 向Redis插入键值对 */
                 if(Database::redis_set(Database::rc, command))
                 {
-                    printf("[INFO] Insert %s-%s success \n", key, value);
+                    // printf("[INFO] Insert %s-%s success \n", key, value);
                 }
                 else
                 {
-                    printf("[INFO] Insert %s-%s fail \n", key, value);
+                    // printf("[INFO] Insert %s-%s fail \n", key, value);
                 }
             }
         }
@@ -492,13 +496,13 @@ void Server::process_body(single_connection *conn)
     /* 修改epoll事件为EPOLLOUT */
     Epoll_Event_Op::epoll_mod_event(conn, EPOLLOUT | EPOLLERR);
 
-    printf("------ REQUEST BODY PARSING END ------ \n");
+    // printf("------ REQUEST BODY PARSING END ------ \n");
 }
 
 /* 负责与客户端通信的连接的写事件的回调函数 */
 void Server::send_response(single_connection *conn)
 {
-    printf("------ REQUEST RESPONSE SEND START ------ \n");
+    // printf("------ REQUEST RESPONSE SEND START ------ \n");
 
     /* 若请求方法为POST，则将用户POST的键值对进行整合返回给客户端 */
     /*  POST需要返回数据，这样可以使用wrk进行压测 */
@@ -539,8 +543,8 @@ void Server::send_response(single_connection *conn)
         /* 整合HTTP应答 */
         sprintf(response_res, "%s\r\n%s", response_res, response_body);
 
-        printf("[INFO] The response is formatted \n");
-        printf("%s \n", response_res);
+        // printf("[INFO] The response is formatted \n");
+        // printf("%s \n", response_res);
 
         /* 向连接fd发送HTTP应答 */
         send(conn->fd, response_res, sizeof(response_res), 0);
@@ -592,8 +596,8 @@ void Server::send_response(single_connection *conn)
         /* 整合HTTP应答 */
         sprintf(response_res, "%s\r\n%s", response_res, response_body);
 
-        printf("[INFO] The response is formatted \n");
-        printf("%s \n", response_res);
+        // printf("[INFO] The response is formatted \n");
+        // printf("%s \n", response_res);
 
         /* 向连接fd发送HTTP应答 */
         send(conn->fd, response_res, sizeof(response_res), 0);
@@ -603,7 +607,7 @@ void Server::send_response(single_connection *conn)
     Epoll_Event_Op::epoll_del_event(conn);
     close_conn(conn);
 
-    printf("------ REQUEST RESPONSE SEND END ------ \n");
+    // printf("------ REQUEST RESPONSE SEND END ------ \n");
 }
 
 /* 根据需要扩大用户请求数据空间 */
@@ -622,7 +626,7 @@ void Server::enlarge_buffer(single_connection &conn)
 /* 空回调函数 */
 void Server::empty_event_handler(single_connection *conn)
 {
-    printf("[WARN] Fd %d was set to the empty event handler \n", conn->fd);
+    // printf("[WARN] Fd %d was set to the empty event handler \n", conn->fd);
 }
 
 /* 关闭连接，释放其结构体空间 */
